@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 
 services: 
   app:
@@ -51,7 +51,7 @@ services:
       MYSQL_DATABASE: laravel
       MYSQL_ROOT_PASSWORD: password
       MYSQL_PASSWORD: 'secret'
-      MYSQL_ROOT_PASSWORD: 'secret'
+      MYSQL_ROOT_PASSWORD: 'secret'      
     volumes: 
       - data:/var/lib/mysql
       - ./development/mysql/my.conf:/etc/mysql/my.conf
@@ -59,18 +59,15 @@ services:
       - application-network
 
   redis:
-     image: docker.io/bitnami/redis:6.2
-     environment:
-     # ALLOW_EMPTY_PASSWORD is recommended only for development.
+    image: docker.io/bitnami/redis:6.2
+    environment:
+    # ALLOW_EMPTY_PASSWORD is recommended only for development.
       - ALLOW_EMPTY_PASSWORD=yes
-      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
-    ports:
-      - '6379:6379'
     volumes:
-      - 'redis_data:/bitnami/redis/data'
+      - redis_data:/bitnami/redis/data
     networks: 
       - application-network        
-
+   
 networks: 
   application-network:
     driver: bridge
@@ -79,5 +76,4 @@ volumes:
   data:
     driver: local
   redis_data:
-    driver: local
- 
+    driver: local  
