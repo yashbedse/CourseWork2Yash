@@ -24,9 +24,9 @@ services:
   npm:
     container_name: npm
     image: node:14.1.0-slim
-    command: /bin/bash "/var/www/commands/development/start-npm.sh"
+    command: /bin/bash "/app/commands/development/start-npm.sh"
     volumes: 
-      - ./:/var/www
+      - ./:/app
     networks: 
       - application-network
 
