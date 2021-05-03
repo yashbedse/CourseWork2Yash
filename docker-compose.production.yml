@@ -59,13 +59,17 @@ services:
 
   redis:
     image: docker.io/bitnami/redis:6.2
-    environment:
-        # ALLOW_EMPTY_PASSWORD is recommended only for development.
-      - ALLOW_EMPTY_PASSWORD=yes
-    volumes:
-      - redis_data:/bitnami/redis/data
-    networks: 
-      - application-network     
+        ports:
+          - '6379'
+        environment:
+          # ALLOW_EMPTY_PASSWORD is recommended only for development.
+          - ALLOW_EMPTY_PASSWORD=yes
+          - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL,CONFIG
+        command: /opt/bitnami/scripts/redis/run.sh --maxmemory 100mb  
+        volumes:
+          - /path/to/redis-persistence:/bitnami/redis/data
+        networks: 
+          - application-network   
 
 networks: 
   application-network:
