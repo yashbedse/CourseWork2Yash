@@ -5,6 +5,7 @@
  * @category Doctry
  *
  * @package Doctry
+ * @author  Amentotech <theamentotech@gmail.com>
  * @license http://www.amentotech.com Amentotech
  * @link    http://www.amentotech.com
  */
