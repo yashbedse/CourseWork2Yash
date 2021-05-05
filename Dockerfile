@@ -1,59 +1,72 @@
-#node installation
-FROM node:12.18-alpine
-ENV NODE_ENV=production
-WORKDIR /home/node/app
-COPY ["package.json", "package-lock.json*", "npm-shrinkwrap.json*", "./"]
-RUN npm install --production --silent && mv node_modules ../
-COPY . .
-EXPOSE 8000
-CMD ["npm", "start"]
+FROM php:7-apache
+LABEL maintainer="Wesley Elfring <hi@wesleyelfring.nl>"
 
-#php installation
-FROM php:7.2-fpm
-RUN apt-get update
-RUN apt install -y apt-utils
+# Copy the PHP configuration file
+COPY ./php.ini /usr/local/etc/php/
 
-# Install dependencies
-RUN apt-get install -qq -y \
-  curl \
-  git \
-  zlib1g-dev \
-  zip unzip
+# Install Apt transport for node/yarn repo's
+RUN apt-get update -yqq \
+    && apt-get -yqq install apt-transport-https ca-certificates wget gnupg
 
-RUN apt install -y libmcrypt-dev libicu-dev libxml2-dev
-RUN apt-get install -y libjpeg-dev libpng-dev libfreetype6-dev libjpeg62-turbo-dev
-RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ 
-RUN docker-php-ext-install gd 
+# Install PHP extensions
+RUN apt-get update -yqq \
+    # Install libs for building PHP exts
+    && apt-get install -yqq --no-install-recommends \
+        libicu-dev \
+        libpq-dev \
+        libmcrypt-dev \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libmcrypt-dev \
+        libpng-dev \
+        libzip-dev \
+        unzip \
+        nano \
+        mariadb-client \
+    # Install PHP Exts
+    && docker-php-ext-configure pdo_mysql --with-pdo-mysql=mysqlnd \
+    && docker-php-ext-install \
+        intl \
+        pcntl \
+        pdo_mysql \        
+        zip \
+        opcache \
+        intl \
+        pcntl \
+        pdo_mysql \
+        pdo \
+        bcmath \
+        xml \
+        ctype \
+        json \
+        fileinfo \
+        mbstring \
+        tokenizer \
+        openssl \
+    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+    && docker-php-ext-install -j$(nproc) gd \
+    && pecl install redis \
+    && pecl install xdebug \
+    && docker-php-ext-enable redis \
+    # Remove dev packages
+    && apt-get remove --purge -yyq libicu-dev \
+        libpq-dev \
+        libmcrypt-dev \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libmcrypt-dev \
+        libpng-dev \
+    && rm -r /var/lib/apt/lists/*
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+# Configure PHP
 
-# Install extensions     
-RUN docker-php-ext-install \
-  bcmath \
-  pdo_mysql \
-  pcntl \
-  zip \
-  pdo \
-  ctype \
-  mbstring \
-  tokenizer \
-  fileinfo \
-  xml \
-  intl \
-  json \
-  openssl
+RUN phpmemory_limit=512M \
+    # Increase the PHP Memory limit to 512mb for both Apache and the CLI
+    && sed -i 's/memory_limit = .*/memory_limit = '${phpmemory_limit}'/' ${PHP_INI_DIR}/php.ini 
 
-# Install composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Add apache and php config for Laravel
+COPY ./site.conf /etc/apache2/sites-available/site.conf
+RUN a2dissite 000-default.conf && a2ensite site.conf && a2enmod rewrite
 
-COPY . /var/www
-
-WORKDIR /var/www
-
-RUN chown -R / \
-  /var/www/storage \
-  /var/www/bootstrap/cache \
-  /var/www/node_modules
-
-CMD php-fpm
+# Change uid and gid of apache to docker user uid/gid
+RUN usermod -u 1000 www-data && groupmod -g 1000 www-data
